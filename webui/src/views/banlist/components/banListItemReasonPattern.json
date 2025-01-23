@@ -1,0 +1,20 @@
+[
+  {
+    "name": "fakeBandwidth",
+    "pattern": "^\\[AutoGen\\] 从大小为 (?<source_size>[\\d]+) (?<source_unit>.+) 的种子上下载了 (?<download_size>[\\d]+) (?<download_unit>.+) 的数据。下载比\\(100%=完整下载1次种子的大小\\)： (?<download_ratio>[\\d]+[\\.]?[\\d]+)%",
+    "group_data": ["source_size", "download_size"],
+    "format": "超量下载|source_size,GB|/|download_size,GB|下载比|download_ratio,%"
+  },
+  {
+    "name": "reportedByUser",
+    "pattern": "^\\[AutoGen\\] 被 (?<report_count>[\\d]+) 个用户应用程序上报为不信任的 IP 地址",
+    "group_data": ["report_count"],
+    "format": "report_count|个用户上报 IP 不受信任"
+  },
+  {
+    "name": "fakeUA",
+    "pattern": "^伪装特征：-(?<peer_id>.+)- (?<peer_name>.+?) (?<details>.+)",
+    "group_data": [],
+    "format": "伪装特征: -|peer_id|- |peer_name| |details|"
+  }
+]

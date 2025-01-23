@@ -5,105 +5,105 @@
                 <a-popover title="Title" :position="'tl'">
                     <span>{{ descriptionBrief }}</span>
                     <template #content>
-                        <p>Here is the text content</p>
-                        <p>Here is the text content</p>
+                        <template v-for="i of descriptionList">
+                            <p>
+                                <template v-if="i.count > 1">
+                                    <span>有</span>
+                                    <span class="banDescriptionSpan bds-orange">{{ i.count }}</span>
+                                    <span>条记录共</span>
+                                </template>
+                                <template v-for="j of i.format.split('|')">
+                                    <template v-for="k of j.split(',')">
+                                        <template v-if="k in i.groups">
+                                            {{ i.groups[k] }}
+                                        </template>
+                                        <template v-else>
+                                            {{ k }}
+                                        </template>
+                                    </template>
+                                </template>
+                            </p>
+                        </template>
                     </template>
                 </a-popover>
             </a-typography-text>
         </div>
     </a-descriptions-item>
 </template>
+
+<style>
+.banDescriptionSpan {
+    margin-left: .5rem;
+    margin-right: .5rem;
+    padding-left: .2rem;
+    padding-right: .2rem;
+    border-radius: .3rem;
+    color: #FFFFFF;
+}
+
+.bds-orange {
+    background-color: #FF9A2E;
+}
+</style>
+
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import { onMounted, ref } from 'vue'
 import type { Ref } from 'vue'
+import patternJSON from "./banListItemReasonPattern.json"
 
 const props = defineProps(['description'])
 const { t, d } = useI18n()
-const descriptionList: Ref<banDescription[]> = ref([])
-const rawDescriptionCount = ref(0)
+
+interface interfaceDescriptionList {
+    name: string,
+    groups: { [key: string]: any },
+    count: number,
+    format: string
+    // [key: string]: any
+}
+
+const descriptionList: Ref<interfaceDescriptionList[]> = ref([])
 const descriptionBrief = ref('')
 
-class banDescription {
-    constructor() {
-    }
-}
-
-class banDescriptionFakeBandwidth extends banDescription {
-    static pattern = new RegExp("^\\[AutoGen\\] 从大小为 (?<source_size>[\\d]+) (?<source_unit>.+) 的种子上下载了 (?<download_size>[\\d]+) (?<download_unit>.+) 的数据。下载比\\(100%=完整下载1次种子的大小\\)： (?<download_ratio>[\\d]+[\\.]?[\\d]+)%")
-    constructor(
-        public source_size: string,
-        public source_unit: string,
-        public download_size: string,
-        public download_unit: string,
-        public download_ratio: string
-    ) {
-        super()
-    }
-    static handleMatch(data) {
-        let groups = data.groups
-        return new banDescriptionFakeBandwidth(
-            groups.source_size,
-            groups.source_unit,
-            groups.download_size,
-            groups.download_unit,
-            groups.download_ratio,
-        )
-    }
-}
-
-class banDescriptionReported extends banDescription {
-    static pattern = new RegExp("^\\[AutoGen\\] 被 (?<report_count>[\\d]+) 个用户应用程序上报为不信任的 IP 地址")
-    constructor(public report_count: string) {
-        super()
-    }
-    static handleMatch(data) {
-        return new banDescriptionReported(data.groups.report_count)
-    }
-}
-
-class banDescriptionIPRange extends banDescription {
-    static pattern = new RegExp("^.+,? \\d+\\.\\d+\\.\\d+\\.\\d+-\\d+\\.\\d+\\.\\d+\\.\\d+")
-    constructor(public report_count: string) {
-        super()
-    }
-    static handleMatch(data) {
-        return null
-    }
-}
-
-class banDescriptionFakeUA extends banDescription {
-    static pattern = new RegExp("")
-    constructor(public peerId: string, public peerName: string) {
-        super()
-    }
-    // static handleMatch(data) {
-    // }
-}
-
 onMounted(() => {
-    for (let i of props.description.split("\n")) {
-        i = i.trim()
-        rawDescriptionCount.value += 1
-        if (i.endsWith(".txt")) {
+    for (let current_description_line of props.description.split("\n")) {
+        current_description_line = current_description_line.trim()
+        if (current_description_line.endsWith(".txt")) {
             continue
         }
-        let matchFlag = false
-        for (let j of [banDescriptionFakeBandwidth, banDescriptionReported, banDescriptionIPRange]) {
-            let matches = j.pattern.exec(i)
+        for (let current_pattern of patternJSON) {
+            let matches: RegExpExecArray | null = new RegExp(current_pattern.pattern).exec(current_description_line)
             if (matches === null) {
+                console.warn("Unmatched description:", current_description_line)
                 continue
             }
-            matchFlag = true
-            let instince = j.handleMatch(matches)
-            if (!instince) {
+            if (matches.groups === undefined) {
+                console.warn("Unmatched group description:", current_description_line)
                 continue
             }
-            descriptionList.value.push(instince)
+            if (!current_pattern.group_data) {
+                descriptionList.value.push({ name: current_pattern.name, groups: matches.groups, count: 1, format: current_pattern.format })
+                continue
+            }
+            let displayFlag = false
+            for (let i of descriptionList.value) {
+                if (i.name != current_pattern.name) {
+                    continue
+                }
+                displayFlag = true
+                i.count += 1
+                for (let j of current_pattern.group_data) {
+                    if (typeof i.groups[j] === 'string') {
+                        i.groups[j] = parseFloat(i.groups[j])
+                    }
+                    i.groups[j] += parseFloat(matches.groups[j])
+                }
+            }
+            if (!displayFlag) {
+                descriptionList.value.push({ name: current_pattern.name, groups: matches.groups, count: 1, format: current_pattern.format })
+            }
             break
-        }
-        if (!matchFlag) {
-            console.warn("Unmatched description:", i)
         }
     }
     if (!descriptionBrief.value) {
