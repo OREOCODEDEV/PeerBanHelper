@@ -3,7 +3,7 @@
     "name": "fakeBandwidth",
     "pattern": "^\\[AutoGen\\] 从大小为 (?<source_size>[\\d]+) (?<source_unit>.+) 的种子上下载了 (?<download_size>[\\d]+) (?<download_unit>.+) 的数据。下载比\\(100%=完整下载1次种子的大小\\)： (?<download_ratio>[\\d]+[\\.]?[\\d]+)%",
     "group_data": ["source_size", "download_size"],
-    "format": "超量下载|source_size,GB|/|download_size,GB|下载比|download_ratio,%"
+    "format": "从|source_size,GB|超量下载|download_size,GB|下载比|download_ratio,%"
   },
   {
     "name": "reportedByUser",

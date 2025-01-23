@@ -24,6 +24,9 @@
                                 </template>
                             </p>
                         </template>
+                        <p>
+                            正在展示 {{ descriptionCount[0] }} 条中的 {{ descriptionCount[1] }} 条，可点击查看原始记录
+                        </p>
                     </template>
                 </a-popover>
             </a-typography-text>
@@ -33,8 +36,8 @@
 
 <style>
 .banDescriptionSpan {
-    margin-left: .5rem;
-    margin-right: .5rem;
+    margin-left: .3rem;
+    margin-right: .3rem;
     padding-left: .2rem;
     padding-right: .2rem;
     border-radius: .3rem;
@@ -64,24 +67,27 @@ interface interfaceDescriptionList {
 }
 
 const descriptionList: Ref<interfaceDescriptionList[]> = ref([])
+const descriptionCount: Ref<[number, number]> = ref([0, 0])
 const descriptionBrief = ref('')
 
 onMounted(() => {
     for (let current_description_line of props.description.split("\n")) {
+        descriptionCount.value[0] += 1
         current_description_line = current_description_line.trim()
         if (current_description_line.endsWith(".txt")) {
             continue
         }
+        let __debug_match_flag = false
         for (let current_pattern of patternJSON) {
             let matches: RegExpExecArray | null = new RegExp(current_pattern.pattern).exec(current_description_line)
             if (matches === null) {
-                console.warn("Unmatched description:", current_description_line)
                 continue
             }
             if (matches.groups === undefined) {
-                console.warn("Unmatched group description:", current_description_line)
                 continue
             }
+            descriptionCount.value[1] += 1
+            __debug_match_flag = true
             if (!current_pattern.group_data) {
                 descriptionList.value.push({ name: current_pattern.name, groups: matches.groups, count: 1, format: current_pattern.format })
                 continue
@@ -104,6 +110,9 @@ onMounted(() => {
                 descriptionList.value.push({ name: current_pattern.name, groups: matches.groups, count: 1, format: current_pattern.format })
             }
             break
+        }
+        if (!__debug_match_flag) {
+            console.warn("Unmatched description:", current_description_line)
         }
     }
     if (!descriptionBrief.value) {
