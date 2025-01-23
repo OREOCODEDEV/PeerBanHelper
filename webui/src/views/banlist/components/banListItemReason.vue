@@ -2,8 +2,9 @@
     <a-descriptions-item :label="t('page.banlist.banlist.listItem.reason')" :span="12">
         <div>
             <a-typography-text style="margin-bottom: 0">
-                <a-popover title="Title" :position="'tl'">
-                    <span>{{ descriptionBrief }}</span>
+                <a-popover title="封禁原因" :position="'tl'">
+                    <a-link>{{ descriptionBrief }}</a-link>
+                    <a-tag color="blue" bordered>{{ descriptionCount[0] }}条折叠</a-tag>
                     <template #content>
                         <template v-for="i in descriptionList">
                             <p>
@@ -147,6 +148,9 @@ onMounted(() => {
             }
             if (matches.groups === undefined) {
                 continue
+            }
+            if (!descriptionBrief.value) {
+                descriptionBrief.value = current_description_line
             }
             descriptionCount.value[1] += 1
             if (!(current_pattern.name in descriptionList.value)) {
