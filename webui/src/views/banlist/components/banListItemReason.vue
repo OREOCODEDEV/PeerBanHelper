@@ -1,6 +1,11 @@
 <template>
     <a-descriptions-item :label="t('page.banlist.banlist.listItem.reason')" :span="12">
-        <div>
+        <template v-if="descriptionCount[0] == 1 || descriptionCount[1] == 0">
+            <a-typography-text style="margin-bottom: 0" :ellipsis="{ showTooltip: true }">
+                {{ descriptionBrief }}
+            </a-typography-text>
+        </template>
+        <template v-else>
             <a-typography-text style="margin-bottom: 0">
                 <a-popover title="封禁原因" :position="'tl'">
                     <a-link>{{ descriptionBrief }}</a-link>
@@ -8,7 +13,6 @@
                     <template #content>
                         <template v-for="i in descriptionList">
                             <p>
-
                                 <template v-if="i.groups.length > 1">
                                     <span>有</span>
                                     <span class="banDescriptionSpan bds-blue">{{ i.groups.length }}</span>
@@ -49,7 +53,7 @@
                     </template>
                 </a-popover>
             </a-typography-text>
-        </div>
+        </template>
     </a-descriptions-item>
 </template>
 

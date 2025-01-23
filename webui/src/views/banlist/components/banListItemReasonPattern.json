@@ -7,7 +7,7 @@
       "download_size",
       "download_ratio"
     ],
-    "format": "从|source_size,GB|超量下载|download_size,GB|下载比|download_ratio,%"
+    "format": "从|source_size,GB|超量下载|download_size,GB|下载比（总和）|download_ratio,%"
   },
   {
     "name": "reportedByUser",
