@@ -147,13 +147,7 @@
         {{ item.banMetadata.rule }}
       </a-typography-text>
     </a-descriptions-item>
-    <a-descriptions-item :label="t('page.banlist.banlist.listItem.reason')" :span="12">
-      <div>
-        <a-typography-text style="margin-bottom: 0" :ellipsis="{ showTooltip: true }">
-          {{ item.banMetadata.description }}
-        </a-typography-text>
-      </div>
-    </a-descriptions-item>
+    <banListItemReason :description="item.banMetadata.description"></banListItemReason>
   </a-descriptions>
 </template>
 <script setup lang="ts">
@@ -167,6 +161,7 @@ import { Message } from '@arco-design/web-vue'
 import { useResponsiveState } from '@arco-design/web-vue/es/grid/hook/use-responsive-state'
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import banListItemReason from "./banListItemReason.vue";
 
 const { t, d } = useI18n()
 defineProps<{
