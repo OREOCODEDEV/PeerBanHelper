@@ -8,7 +8,7 @@
         <template v-else>
             <a-typography-text style="margin-bottom: 0">
                 <a-popover title="封禁原因" :position="'tl'">
-                    <a-link>{{ descriptionBrief }}</a-link>
+                    <a-link style="color: #1d2129">{{ descriptionBrief }}</a-link>
                     <a-tag color="blue" bordered>{{ descriptionCount[0] }}条折叠</a-tag>
                     <template #content>
                         <template v-for="i in descriptionList">
