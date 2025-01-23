@@ -5,26 +5,44 @@
                 <a-popover title="Title" :position="'tl'">
                     <span>{{ descriptionBrief }}</span>
                     <template #content>
-                        <template v-for="i of descriptionList">
+                        <template v-for="i in descriptionList">
                             <p>
-                                <template v-if="i.count > 1">
+
+                                <template v-if="i.groups.length > 1">
                                     <span>有</span>
-                                    <span class="banDescriptionSpan bds-orange">{{ i.count }}</span>
-                                    <span>条记录共</span>
+                                    <span class="banDescriptionSpan bds-blue">{{ i.groups.length }}</span>
+                                    <span>条记录</span>
                                 </template>
-                                <template v-for="j of i.format.split('|')">
-                                    <template v-for="k of j.split(',')">
-                                        <template v-if="k in i.groups">
-                                            {{ i.groups[k] }}
+
+                                <!-- 避免使用 v-html 实现渲染所以模板复杂了一点 -->
+                                <template v-for="j of i.pattern.format.split('|')">
+                                    <template v-if="j.includes(',')">
+                                        <span class="banDescriptionSpan">
+                                            <template v-for="k of j.split(',')">
+                                                <template v-if="k in countAll[i.pattern.name]">
+                                                    {{ countAll[i.pattern.name][k] }}
+                                                </template>
+                                                <template v-else>
+                                                    {{ k }}
+                                                </template>
+                                            </template>
+                                        </span>
+                                    </template>
+                                    <template v-else>
+                                        <template v-if="j in countAll[i.pattern.name]">
+                                            <span class="banDescriptionSpan">
+                                                {{ countAll[i.pattern.name][j] }}
+                                            </span>
                                         </template>
                                         <template v-else>
-                                            {{ k }}
+                                            {{ j }}
                                         </template>
                                     </template>
                                 </template>
+
                             </p>
                         </template>
-                        <p>
+                        <p style="color: #9A9A9A;">
                             正在展示 {{ descriptionCount[0] }} 条中的 {{ descriptionCount[1] }} 条，可点击查看原始记录
                         </p>
                     </template>
@@ -41,11 +59,16 @@
     padding-left: .2rem;
     padding-right: .2rem;
     border-radius: .3rem;
-    color: #FFFFFF;
+    font-weight: bold;
 }
 
 .bds-orange {
     background-color: #FF9A2E;
+}
+
+.bds-blue {
+    background-color: #4080FF;
+    color: #FFFFFF;
 }
 </style>
 
@@ -53,22 +76,62 @@
 import { useI18n } from 'vue-i18n'
 import { onMounted, ref } from 'vue'
 import type { Ref } from 'vue'
+import { computed } from 'vue'
 import patternJSON from "./banListItemReasonPattern.json"
 
 const props = defineProps(['description'])
 const { t, d } = useI18n()
 
 interface interfaceDescriptionList {
-    name: string,
     groups: { [key: string]: any },
-    count: number,
-    format: string
-    // [key: string]: any
+    pattern: {
+        name: string,
+        pattern: string,
+        group_data: string[],
+        format: string,
+    },
 }
 
-const descriptionList: Ref<interfaceDescriptionList[]> = ref([])
+const descriptionList: Ref<{ [key: string]: interfaceDescriptionList }> = ref({})
 const descriptionCount: Ref<[number, number]> = ref([0, 0])
 const descriptionBrief = ref('')
+
+const countAll = computed(() => {
+    let result: { [key: string]: { [key: string]: number } } = {}
+    for (let pattern_name in descriptionList.value) {
+        result[pattern_name] = {}
+        for (let meta_name of descriptionList.value[pattern_name].pattern.group_data) {
+            if (!(meta_name in result[pattern_name])) {
+                result[pattern_name][meta_name] = 0
+            }
+            for (let current_group of descriptionList.value[pattern_name].groups) {
+
+                let ratio = 1
+                if ((meta_name + "_unit") in current_group) {
+                    let unit = current_group[meta_name + "_unit"]
+                    if (unit == "MB") {
+                        ratio = 1 / 1024
+                    }
+                    if (unit == "TB") {
+                        ratio = 1024
+                    }
+                }
+
+                result[pattern_name][meta_name] += parseFloat(current_group[meta_name]) * ratio
+            }
+            result[pattern_name][meta_name] = Math.round(result[pattern_name][meta_name])
+        }
+        if (descriptionList.value[pattern_name].groups) {
+            for (let meta_name in descriptionList.value[pattern_name].groups[0]) {
+                if (meta_name in result[pattern_name]) {
+                    continue
+                }
+                result[pattern_name][meta_name] = descriptionList.value[pattern_name].groups[0][meta_name]
+            }
+        }
+    }
+    return result
+})
 
 onMounted(() => {
     for (let current_description_line of props.description.split("\n")) {
@@ -77,7 +140,6 @@ onMounted(() => {
         if (current_description_line.endsWith(".txt")) {
             continue
         }
-        let __debug_match_flag = false
         for (let current_pattern of patternJSON) {
             let matches: RegExpExecArray | null = new RegExp(current_pattern.pattern).exec(current_description_line)
             if (matches === null) {
@@ -87,37 +149,15 @@ onMounted(() => {
                 continue
             }
             descriptionCount.value[1] += 1
-            __debug_match_flag = true
-            if (!current_pattern.group_data) {
-                descriptionList.value.push({ name: current_pattern.name, groups: matches.groups, count: 1, format: current_pattern.format })
-                continue
+            if (!(current_pattern.name in descriptionList.value)) {
+                descriptionList.value[current_pattern.name] = { groups: [], pattern: current_pattern }
             }
-            let displayFlag = false
-            for (let i of descriptionList.value) {
-                if (i.name != current_pattern.name) {
-                    continue
-                }
-                displayFlag = true
-                i.count += 1
-                for (let j of current_pattern.group_data) {
-                    if (typeof i.groups[j] === 'string') {
-                        i.groups[j] = parseFloat(i.groups[j])
-                    }
-                    i.groups[j] += parseFloat(matches.groups[j])
-                }
-            }
-            if (!displayFlag) {
-                descriptionList.value.push({ name: current_pattern.name, groups: matches.groups, count: 1, format: current_pattern.format })
-            }
+            descriptionList.value[current_pattern.name].groups.push(matches.groups)
             break
-        }
-        if (!__debug_match_flag) {
-            console.warn("Unmatched description:", current_description_line)
         }
     }
     if (!descriptionBrief.value) {
         descriptionBrief.value = props.description
-        // debugger
     }
 })
 </script>
